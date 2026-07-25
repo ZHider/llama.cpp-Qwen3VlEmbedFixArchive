@@ -95,6 +95,12 @@ jobs:
         run: |
           cd build
           ctest -L main -E "test-llama-archs" --verbose --timeout 900
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-arm64-metal
+          path: build/bin/*
+          if-no-files-found: warn
 
   macOS-latest-x64:
     runs-on: macos-15-intel
@@ -131,6 +137,12 @@ jobs:
         run: |
           cd build
           ctest -L main --verbose --timeout 900
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-x64-cpu
+          path: build/bin/*
+          if-no-files-found: warn
 
   macOS-latest-arm64-webgpu:
     runs-on: macos-latest
@@ -173,6 +185,13 @@ jobs:
         run: |
           cd build
           ctest -L main --verbose --timeout 900
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-arm64-webgpu
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-cpu:
     strategy:
@@ -259,6 +278,12 @@ jobs:
           echo "Fetch llama2c big-endian model"
           wget https://huggingface.co/ggml-org/models/resolve/main/tinyllamas/stories260K-be.gguf
           ./bin/llama-completion -m stories260K-be.gguf -p "One day, Lily met a Shoggoth" -n 500 -c 256
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-cpu-${{ matrix.build }}
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-latest-rpc:
     runs-on: ubuntu-latest
@@ -290,6 +315,12 @@ jobs:
         run: |
           cd build
           ctest -L main --verbose
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-x64-rpc
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-24-vulkan:
     runs-on: ${{ 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
@@ -318,6 +349,12 @@ jobs:
         id: cmake_build
         run: |
           time cmake --build build -j $(nproc)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-vulkan
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-24-webgpu:
     runs-on: ubuntu-24.04
@@ -390,6 +427,12 @@ jobs:
           cd build
           # This is using llvmpipe and runs slower than other backends
           ctest -L main --verbose --timeout 900
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-x64-webgpu
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-24-webgpu-wasm:
     runs-on: ${{ 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
@@ -457,6 +500,12 @@ jobs:
             -DGGML_HIP_ROCWMMA_FATTN=ON \
             -DGGML_HIP=ON
           cmake --build build --config Release -j $(nproc)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-x64-hip
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-22-musa:
     runs-on: ubuntu-22.04
@@ -486,6 +535,12 @@ jobs:
           cmake -B build -S . \
             -DGGML_MUSA=ON
           time cmake --build build --config Release -j $(nproc)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-x64-musa
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-22-sycl:
     runs-on: ubuntu-22.04
@@ -535,6 +590,12 @@ jobs:
             -DCMAKE_C_COMPILER=icx \
             -DCMAKE_CXX_COMPILER=icpx
           time cmake --build build --config Release -j $(nproc)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-x64-sycl
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-22-sycl-fp16:
     runs-on: ubuntu-22.04
@@ -587,6 +648,12 @@ jobs:
             -DCMAKE_CXX_COMPILER=icpx \
             -DGGML_SYCL_F16=ON
           time cmake --build build --config Release -j $(nproc)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-x64-sycl-fp16
+          path: build/bin/*
+          if-no-files-found: warn
 
   ubuntu-24-openvino:
       name: ubuntu-24-openvino-${{ matrix.openvino_device }}
@@ -667,6 +734,12 @@ jobs:
               export GGML_OPENVINO_DEVICE=GPU
             fi
             ctest --test-dir build/ReleaseOV -L main -E "test-llama-archs" --verbose --timeout 2000
+        - name: Upload artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: ubuntu-24-openvino-${{ matrix.variant }}
+            path: build/ReleaseOV/bin/*
+            if-no-files-found: warn
 
   windows-latest:
     runs-on: windows-2025
@@ -789,6 +862,14 @@ jobs:
       #     cd build
       #     $env:LLAMA_SKIP_TESTS_SLOW_ON_EMULATOR = 1
       #     & $sde -future -- ctest -L main -C Release --verbose --timeout 900
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.build }}
+          path: |
+            build/bin/Release/*.exe
+            build/bin/Release/*.dll
+          if-no-files-found: warn
 
   ubuntu-latest-cuda:
     runs-on: ubuntu-latest
@@ -825,6 +906,12 @@ jobs:
               -DGGML_CUDA=ON \
               -DGGML_CUDA_CUB_3DOT2=ON
             cmake --build build
+        - name: Upload artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: ubuntu-x64-cuda
+            path: build/bin/*
+            if-no-files-found: warn
 
   windows-2022-cuda:
     runs-on: windows-2022
@@ -874,6 +961,14 @@ jobs:
           set /A NINJA_JOBS=%NUMBER_OF_PROCESSORS%-1
           cmake --build build --config Release -j %NINJA_JOBS% -t ggml
           cmake --build build --config Release
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-cuda
+          path: |
+            build/bin/Release/*.exe
+            build/bin/Release/*.dll
+          if-no-files-found: warn
 
   windows-latest-sycl:
     runs-on: windows-2022
@@ -908,6 +1003,14 @@ jobs:
       - name: Build
         id: cmake_build
         run:  examples/sycl/win-build-sycl.bat
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-sycl
+          path: |
+            build/bin/Release/*.exe
+            build/bin/Release/*.dll
+          if-no-files-found: warn
 
   windows-latest-hip:
     runs-on: windows-2022
@@ -975,6 +1078,14 @@ jobs:
             -DGGML_HIP_ROCWMMA_FATTN=ON `
             -DGGML_RPC=ON
           cmake --build build -j ${env:NUMBER_OF_PROCESSORS}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-hip
+          path: |
+            build/bin/*.exe
+            build/bin/*.dll
+          if-no-files-found: warn
 
   ubuntu-cpu-riscv64-native:
     runs-on: RISCV64
@@ -1065,6 +1176,12 @@ jobs:
           wget https://huggingface.co/karpathy/tinyllamas/resolve/main/stories260K/stories260K.bin
           ./bin/llama-convert-llama2c-to-ggml --copy-vocab-from-model ./tok512.bin --llama2c-model stories260K.bin --llama2c-output-model stories260K.gguf
           ./bin/llama-completion -m stories260K.gguf -p "One day, Lily met a Shoggoth" -n 500 -c 256
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-riscv64-cpu
+          path: build/bin/*
+          if-no-files-found: warn
 
 # TODO: simplify the following workflows using a matrix
 # TODO: run lighter CI on PRs and the full CI only on master (if needed)
