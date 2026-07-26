@@ -123,7 +123,7 @@ jobs:
           & $lib /machine:x64 ("/def:$env:RUNNER_TEMP\openblas\lib\libopenblas.def") "/out:$env:RUNNER_TEMP\openblas\lib\openblas.lib" /name:openblas.dll
       - name: Build
         run: |
-          cmake -S . -B build -G "Ninja Multi-Config" -DCMAKE_TOOLCHAIN_FILE=cmake/x64-windows-llvm.cmake -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_BORINGSSL=ON -DGGML_OPENMP=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DBLAS_INCLUDE_DIRS="$env:RUNNER_TEMP/openblas/include" -DBLAS_LIBRARIES="$env:RUNNER_TEMP/openblas/lib/openblas.lib"
+          cmake -S . -B build -G "Ninja Multi-Config" "-DCMAKE_TOOLCHAIN_FILE=cmake/x64-windows-llvm.cmake" -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_BORINGSSL=ON -DGGML_OPENMP=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DBLAS_INCLUDE_DIRS="$env:RUNNER_TEMP/openblas/include" -DBLAS_LIBRARIES="$env:RUNNER_TEMP/openblas/lib/openblas.lib"
           cmake --build build --config Release -j ${env:NUMBER_OF_PROCESSORS}
       - name: Copy OpenBLAS DLL
         run: cp $env:RUNNER_TEMP/openblas/bin/libopenblas.dll ./build/bin/Release/openblas.dll
@@ -227,6 +227,7 @@ jobs:
         uses: ggml-org/ccache-action@v1.2.21
         with:
           key: rl-ubuntu-x64-cuda
+          update-package-index: true
       - name: Dependencies
         run: |
           apt update && apt install -y cmake build-essential ninja-build libgomp1 git libssl-dev
@@ -250,6 +251,7 @@ jobs:
         uses: ggml-org/ccache-action@v1.2.21
         with:
           key: rl-ubuntu-x64-hip
+          update-package-index: true
       - name: Dependencies
         run: |
           sudo apt-get update
