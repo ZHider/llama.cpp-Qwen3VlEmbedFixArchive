@@ -13,6 +13,7 @@ on:
 
 env:
   VULKAN_VERSION: 1.4.313.2
+  OPENBLAS_VERSION: 0.3.23
   PACKAGE_NAME: llama-vl-embedding
 
 jobs:
@@ -81,6 +82,34 @@ jobs:
           name: llama-vl-embedding-windows-x64-vulkan
           path: llama-vl-embedding-windows-x64-vulkan.zip
 
+  windows-x64-openblas:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Ninja
+        run: choco install ninja
+      - name: Download OpenBLAS
+        run: |
+          curl.exe -o $env:RUNNER_TEMP/openblas.zip -L "https://github.com/xianyi/OpenBLAS/releases/download/v${env:OPENBLAS_VERSION}/OpenBLAS-${env:OPENBLAS_VERSION}-x64.zip"
+          mkdir $env:RUNNER_TEMP/openblas
+          tar.exe -xvf $env:RUNNER_TEMP/openblas.zip -C $env:RUNNER_TEMP/openblas
+          $vcdir = $(vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          $msvc = $(join-path $vcdir 'VC\Tools\MSVC\'+$(gc -raw $(join-path $vcdir 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt')).Trim())
+          $lib =  $(join-path $msvc 'bin\Hostx64\x64\lib.exe')
+          & $lib /machine:x64 "/def:${env:RUNNER_TEMP}/openblas/lib/libopenblas.def" "/out:${env:RUNNER_TEMP}/openblas/lib/openblas.lib" /name:openblas.dll
+      - name: Build
+        run: |
+          cmake -S . -B build -G "Ninja Multi-Config" -DCMAKE_TOOLCHAIN_FILE=cmake/x64-windows-llvm.cmake -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_BORINGSSL=ON -DGGML_OPENMP=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DBLAS_INCLUDE_DIRS="$env:RUNNER_TEMP/openblas/include" -DBLAS_LIBRARIES="$env:RUNNER_TEMP/openblas/lib/openblas.lib"
+          cmake --build build --config Release -j ${env:NUMBER_OF_PROCESSORS}
+      - name: Copy OpenBLAS DLL
+        run: cp $env:RUNNER_TEMP/openblas/bin/libopenblas.dll ./build/bin/Release/openblas.dll
+      - name: Pack
+        run: 7z a -snl llama-vl-embedding-windows-x64-openblas.zip .\build\bin\Release\llama-vl-embedding.exe .\build\bin\Release\*.dll
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-windows-x64-openblas
+          path: llama-vl-embedding-windows-x64-openblas.zip
+
   ubuntu-x64-cpu:
     runs-on: ubuntu-22.04
     steps:
@@ -132,6 +161,66 @@ jobs:
           name: llama-vl-embedding-ubuntu-arm64-cpu
           path: llama-vl-embedding-ubuntu-arm64-cpu.tar.gz
 
+  ubuntu-arm64-vulkan:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libvulkan-dev glslc libssl-dev ninja-build
+      - name: Build
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+          cmake --build build -j $(nproc)
+      - name: Pack
+        run: tar -czf llama-vl-embedding-ubuntu-arm64-vulkan.tar.gz -C build/bin llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-ubuntu-arm64-vulkan
+          path: llama-vl-embedding-ubuntu-arm64-vulkan.tar.gz
+
+  ubuntu-x64-cuda:
+    runs-on: ubuntu-latest
+    container: nvidia/cuda:12.6.2-devel-ubuntu24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Dependencies
+        run: |
+          apt update && apt install -y cmake build-essential ninja-build libgomp1 git libssl-dev
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
+          cmake --build build
+      - name: Pack
+        run: tar -czf llama-vl-embedding-ubuntu-x64-cuda.tar.gz -C build/bin llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-ubuntu-x64-cuda
+          path: llama-vl-embedding-ubuntu-x64-cuda.tar.gz
+
+  ubuntu-x64-hip:
+    runs-on: ubuntu-22.04
+    container: rocm/dev-ubuntu-22.04:6.1.2
+    steps:
+      - uses: actions/checkout@v6
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git cmake rocblas-dev hipblas-dev libssl-dev rocwmma-dev
+      - name: Build
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_HIP_COMPILER="$(hipconfig -l)/clang" \
+            -DGGML_HIP_ROCWMMA_FATTN=ON \
+            -DGPU_TARGETS="gfx1030" \
+            -DGGML_HIP=ON
+          cmake --build build --config Release -j $(nproc)
+      - name: Pack
+        run: tar -czf llama-vl-embedding-ubuntu-x64-hip.tar.gz -C build/bin llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-ubuntu-x64-hip
+          path: llama-vl-embedding-ubuntu-x64-hip.tar.gz
+
   macos-arm64-metal:
     runs-on: macos-latest
     steps:
@@ -147,6 +236,21 @@ jobs:
           name: llama-vl-embedding-macos-arm64-metal
           path: llama-vl-embedding-macos-arm64-metal.tar.gz
 
+  macos-x64-cpu:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_RPATH="@loader_path" -DLLAMA_BUILD_BORINGSSL=ON -DGGML_METAL=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
+          cmake --build build --config Release -j $(sysctl -n hw.logicalcpu)
+      - name: Pack
+        run: tar -czf llama-vl-embedding-macos-x64-cpu.tar.gz -C build/bin llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-macos-x64-cpu
+          path: llama-vl-embedding-macos-x64-cpu.tar.gz
+
   release:
     if: ${{ github.ref_type == 'tag' || github.event.inputs.tag != '' }}
     runs-on: ubuntu-latest
@@ -154,10 +258,15 @@ jobs:
       - windows-x64-cpu
       - windows-x64-cuda
       - windows-x64-vulkan
+      - windows-x64-openblas
       - ubuntu-x64-cpu
       - ubuntu-x64-vulkan
       - ubuntu-arm64-cpu
+      - ubuntu-arm64-vulkan
+      - ubuntu-x64-cuda
+      - ubuntu-x64-hip
       - macos-arm64-metal
+      - macos-x64-cpu
     permissions:
       contents: write
     steps:
@@ -192,16 +301,21 @@ jobs:
 
             **Windows:**
             - [Windows x64 CPU](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-windows-x64-cpu.zip) (standalone)
-            - [Windows x64 CUDA](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-windows-x64-cuda.zip) (includes ggml-cuda.dll)
-            - [Windows x64 Vulkan](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-windows-x64-vulkan.zip) (includes ggml-vulkan.dll)
+            - [Windows x64 CUDA](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-windows-x64-cuda.zip) (requires CUDA 12.4 runtime)
+            - [Windows x64 Vulkan](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-windows-x64-vulkan.zip) (requires Vulkan driver)
+            - [Windows x64 OpenBLAS](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-windows-x64-openblas.zip)
 
             **Linux:**
             - [Ubuntu x64 CPU](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-ubuntu-x64-cpu.tar.gz)
             - [Ubuntu x64 Vulkan](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-ubuntu-x64-vulkan.tar.gz)
+            - [Ubuntu x64 CUDA](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-ubuntu-x64-cuda.tar.gz) (requires NVIDIA container runtime)
+            - [Ubuntu x64 HIP (AMD ROCm)](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-ubuntu-x64-hip.tar.gz)
             - [Ubuntu arm64 CPU](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-ubuntu-arm64-cpu.tar.gz)
+            - [Ubuntu arm64 Vulkan](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-ubuntu-arm64-vulkan.tar.gz)
 
             **macOS:**
-            - [macOS arm64 Metal](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-macos-arm64-metal.tar.gz)
+            - [macOS arm64 (Apple Silicon)](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-macos-arm64-metal.tar.gz)
+            - [macOS x64 (Intel)](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.name }}/llama-vl-embedding-macos-x64-cpu.tar.gz)
           files: release/*
           draft: false
           prerelease: false
