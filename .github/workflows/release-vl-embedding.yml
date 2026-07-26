@@ -121,7 +121,7 @@ jobs:
           cmake -B build
           cmake --build build --config Release -j $(nproc)
       - name: Pack
-        run: tar -czf llama-vl-embedding-ubuntu-x64-cpu.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-ubuntu-x64-cpu.tar.gz -C build/bin llama-vl-embedding libllama.so libmtmd.so libggml.so
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-ubuntu-x64-cpu
@@ -138,7 +138,7 @@ jobs:
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
           cmake --build build -j $(nproc)
       - name: Pack
-        run: tar -czf llama-vl-embedding-ubuntu-x64-vulkan.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-ubuntu-x64-vulkan.tar.gz -C build/bin llama-vl-embedding libllama.so libmtmd.so libggml.so
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-ubuntu-x64-vulkan
@@ -155,7 +155,7 @@ jobs:
           cmake -B build
           cmake --build build --config Release -j $(nproc)
       - name: Pack
-        run: tar -czf llama-vl-embedding-ubuntu-arm64-cpu.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-ubuntu-arm64-cpu.tar.gz -C build/bin llama-vl-embedding libllama.so libmtmd.so libggml.so
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-ubuntu-arm64-cpu
@@ -172,7 +172,7 @@ jobs:
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
           cmake --build build -j $(nproc)
       - name: Pack
-        run: tar -czf llama-vl-embedding-ubuntu-arm64-vulkan.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-ubuntu-arm64-vulkan.tar.gz -C build/bin llama-vl-embedding libllama.so libmtmd.so libggml.so
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-ubuntu-arm64-vulkan
@@ -191,7 +191,7 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
           cmake --build build
       - name: Pack
-        run: tar -czf llama-vl-embedding-ubuntu-x64-cuda.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-ubuntu-x64-cuda.tar.gz -C build/bin llama-vl-embedding libllama.so libmtmd.so libggml.so
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-ubuntu-x64-cuda
@@ -215,7 +215,7 @@ jobs:
             -DGGML_HIP=ON
           cmake --build build --config Release -j $(nproc)
       - name: Pack
-        run: tar -czf llama-vl-embedding-ubuntu-x64-hip.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-ubuntu-x64-hip.tar.gz -C build/bin llama-vl-embedding libllama.so libmtmd.so libggml.so
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-ubuntu-x64-hip
@@ -230,7 +230,7 @@ jobs:
           cmake -B build -DCMAKE_BUILD_RPATH="@loader_path" -DLLAMA_BUILD_BORINGSSL=ON -DGGML_METAL_USE_BF16=ON
           cmake --build build --config Release -j $(sysctl -n hw.logicalcpu)
       - name: Pack
-        run: tar -czf llama-vl-embedding-macos-arm64-metal.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-macos-arm64-metal.tar.gz -C build/bin llama-vl-embedding libllama.dylib libmtmd.dylib libggml.dylib
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-macos-arm64-metal
@@ -245,7 +245,7 @@ jobs:
           cmake -B build -DCMAKE_BUILD_RPATH="@loader_path" -DLLAMA_BUILD_BORINGSSL=ON -DGGML_METAL=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
           cmake --build build --config Release -j $(sysctl -n hw.logicalcpu)
       - name: Pack
-        run: tar -czf llama-vl-embedding-macos-x64-cpu.tar.gz -C build/bin llama-vl-embedding
+        run: tar -czf llama-vl-embedding-macos-x64-cpu.tar.gz -C build/bin llama-vl-embedding libllama.dylib libmtmd.dylib libggml.dylib
       - uses: actions/upload-artifact@v4
         with:
           name: llama-vl-embedding-macos-x64-cpu
