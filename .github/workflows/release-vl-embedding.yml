@@ -1,0 +1,131 @@
+name: Release (llama-vl-embedding only)
+
+on:
+  workflow_dispatch:
+
+env:
+  VULKAN_VERSION: 1.4.313.2
+
+jobs:
+  windows-x64-vulkan:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Ninja
+        run: choco install ninja
+      - name: Install Vulkan SDK
+        shell: powershell
+        run: |
+          curl.exe -o "$env:RUNNER_TEMP\VulkanSDK.exe" -L "https://sdk.lunarg.com/sdk/download/${env:VULKAN_VERSION}/windows/vulkansdk-windows-X64-${env:VULKAN_VERSION}.exe"
+          & "$env:RUNNER_TEMP\VulkanSDK.exe" --accept-licenses --default-answer --confirm-command install
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\${env:VULKAN_VERSION}"
+          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\${env:VULKAN_VERSION}\bin"
+      - name: Build llama-vl-embedding
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_BORINGSSL=ON -DGGML_CPU_ALL_VARIANTS=ON
+          cmake --build build --config Release -j ${env:NUMBER_OF_PROCESSORS} --target llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-windows-x64-vulkan
+          path: build/bin/Release/llama-vl-embedding.exe
+          if-no-files-found: error
+
+  windows-x64-cpu:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Ninja
+        run: choco install ninja
+      - name: Build llama-vl-embedding
+        run: |
+          cmake -S . -B build -G "Ninja Multi-Config" -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_BORINGSSL=ON
+          cmake --build build --config Release -j ${env:NUMBER_OF_PROCESSORS} --target llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-windows-x64-cpu
+          path: build/bin/Release/llama-vl-embedding.exe
+          if-no-files-found: error
+
+  windows-x64-cuda:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Cuda Toolkit
+        uses: ./.github/actions/windows-setup-cuda
+        with:
+          cuda_version: '12.4'
+      - name: Install Ninja
+        run: choco install ninja
+      - name: Build llama-vl-embedding
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          cmake -S . -B build -G "Ninja Multi-Config" -DGGML_NATIVE=OFF -DGGML_CUDA=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_BORINGSSL=ON
+          cmake --build build --config Release -j %NUMBER_OF_PROCESSORS% --target llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-windows-x64-cuda
+          path: build/bin/Release/llama-vl-embedding.exe
+          if-no-files-found: error
+
+  ubuntu-x64-cpu:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev
+      - name: Build llama-vl-embedding
+        run: |
+          cmake -B build
+          cmake --build build --config Release -j $(nproc) --target llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-ubuntu-x64-cpu
+          path: build/bin/llama-vl-embedding
+          if-no-files-found: error
+
+  ubuntu-x64-vulkan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libvulkan-dev glslc libssl-dev ninja-build
+      - name: Build llama-vl-embedding
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON
+          cmake --build build -j $(nproc) --target llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-ubuntu-x64-vulkan
+          path: build/bin/llama-vl-embedding
+          if-no-files-found: error
+
+  ubuntu-arm64-cpu:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev
+      - name: Build llama-vl-embedding
+        run: |
+          cmake -B build
+          cmake --build build --config Release -j $(nproc) --target llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-ubuntu-arm64-cpu
+          path: build/bin/llama-vl-embedding
+          if-no-files-found: error
+
+  macos-arm64-metal:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build llama-vl-embedding
+        run: |
+          cmake -B build -DCMAKE_BUILD_RPATH="@loader_path" -DLLAMA_BUILD_BORINGSSL=ON -DGGML_METAL_USE_BF16=ON
+          cmake --build build --config Release -j $(sysctl -n hw.logicalcpu) --target llama-vl-embedding
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llama-vl-embedding-macos-arm64-metal
+          path: build/bin/llama-vl-embedding
+          if-no-files-found: error
