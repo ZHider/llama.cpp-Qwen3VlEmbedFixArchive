@@ -166,7 +166,28 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
-          merge-multiple: true
+
+      - name: Rename and collect binaries
+        shell: bash
+        run: |
+          mkdir -p release
+          # Each artifact is in its own subdirectory: artifacts/<artifact-name>/<binary>
+          for dir in artifacts/*/; do
+            name=$(basename "$dir")
+            for f in "$dir"*; do
+              if [ -f "$f" ]; then
+                ext="${f##*.}"
+                case "$name" in
+                  *windows*)   newname="${name}.${ext}" ;;
+                  *ubuntu*)    newname="${name}.${ext}" ;;
+                  *macos*)     newname="${name}.${ext}" ;;
+                  *)           newname="${name}.${ext}" ;;
+                esac
+                cp "$f" "release/${name}"
+                echo "Collected: ${name}"
+              fi
+            done
+          done
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -181,6 +202,6 @@ jobs:
             - Ubuntu x64 (CPU / Vulkan)
             - Ubuntu arm64 (CPU)
             - macOS arm64 (Metal)
-          files: artifacts/*
+          files: release/*
           draft: false
           prerelease: false
