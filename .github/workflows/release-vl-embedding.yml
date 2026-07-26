@@ -21,6 +21,11 @@ jobs:
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-windows-x64-cpu
+          variant: ccache
       - name: Install Ninja
         run: choco install ninja
       - name: Build
@@ -38,6 +43,11 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-windows-x64-cuda
+          variant: ccache
       - name: Install Cuda Toolkit
         uses: ./.github/actions/windows-setup-cuda
         with:
@@ -62,6 +72,11 @@ jobs:
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-windows-x64-vulkan
+          variant: ccache
       - name: Install Ninja
         run: choco install ninja
       - name: Install Vulkan SDK
@@ -86,6 +101,11 @@ jobs:
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-windows-x64-openblas
+          variant: ccache
       - name: Install Ninja
         run: choco install ninja
       - name: Download OpenBLAS
@@ -118,6 +138,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-ubuntu-x64-cpu
       - name: Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev
       - name: Build
@@ -135,6 +159,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-ubuntu-x64-vulkan
       - name: Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential libvulkan-dev glslc libssl-dev ninja-build
       - name: Build
@@ -152,6 +180,10 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-ubuntu-arm64-cpu
       - name: Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev
       - name: Build
@@ -169,6 +201,10 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-ubuntu-arm64-vulkan
       - name: Dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential libvulkan-dev glslc libssl-dev ninja-build
       - name: Build
@@ -187,6 +223,10 @@ jobs:
     container: nvidia/cuda:12.6.2-devel-ubuntu24.04
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-ubuntu-x64-cuda
       - name: Dependencies
         run: |
           apt update && apt install -y cmake build-essential ninja-build libgomp1 git libssl-dev
@@ -206,6 +246,10 @@ jobs:
     container: rocm/dev-ubuntu-22.04:6.1.2
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-ubuntu-x64-hip
       - name: Dependencies
         run: |
           sudo apt-get update
@@ -229,6 +273,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-macos-arm64-metal
       - name: Build
         run: |
           cmake -B build -DCMAKE_BUILD_RPATH="@loader_path" -DLLAMA_BUILD_BORINGSSL=ON -DGGML_METAL_USE_BF16=ON
@@ -244,6 +292,10 @@ jobs:
     runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v6
+      - name: ccache
+        uses: ggml-org/ccache-action@v1.2.21
+        with:
+          key: rl-macos-x64-cpu
       - name: Build
         run: |
           cmake -B build -DCMAKE_BUILD_RPATH="@loader_path" -DLLAMA_BUILD_BORINGSSL=ON -DGGML_METAL=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
@@ -282,19 +334,16 @@ jobs:
           else
             echo "name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
           fi
-
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
-
       - name: Collect release files
         run: |
           mkdir -p release
           find artifacts -name '*.zip' -o -name '*.tar.gz' | while read f; do
             cp "$f" release/
           done
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
