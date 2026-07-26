@@ -96,6 +96,7 @@ struct clip_image_f32 * clip_image_f32_get_img(const struct clip_image_f32_batch
  * The memory layout is RGBRGBRGB..., input buffer length must be 3*nx*ny bytes
  */
 void clip_build_img_from_pixels(const unsigned char * rgb_pixels, int nx, int ny, struct clip_image_u8 * img);
+bool clip_image_preprocess(struct clip_ctx * ctx, const struct clip_image_u8 * img, struct clip_image_f32_batch * res_imgs);
 
 struct ggml_tensor * clip_get_newline_tensor(const struct clip_ctx * ctx);
 
