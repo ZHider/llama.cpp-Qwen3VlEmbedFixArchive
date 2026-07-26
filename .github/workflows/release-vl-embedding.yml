@@ -95,11 +95,12 @@ jobs:
           mkdir $env:RUNNER_TEMP/openblas -Force
           tar.exe -xvf $env:RUNNER_TEMP/openblas.zip -C $env:RUNNER_TEMP/openblas
       - name: Create OpenBLAS import lib
-        shell: cmd
+        shell: powershell
         run: |
-          for /f "usebackq delims=" %i in (`vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set VCDIR=%i
-          for /f "usebackq delims=" %i in (`type "%VCDIR%\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"`) do set MSVC_VER=%i
-          "%VCDIR%\VC\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\lib.exe" /machine:x64 "/def:%RUNNER_TEMP%\openblas\lib\libopenblas.def" "/out:%RUNNER_TEMP%\openblas\lib\openblas.lib" /name:openblas.dll
+          $vcdir = & vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $ver = Get-Content -Raw (Join-Path $vcdir "VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt")
+          $lib = Join-Path $vcdir "VC\Tools\MSVC\$($ver.Trim())\bin\Hostx64\x64\lib.exe"
+          & $lib /machine:x64 ("/def:$env:RUNNER_TEMP\openblas\lib\libopenblas.def") "/out:$env:RUNNER_TEMP\openblas\lib\openblas.lib" /name:openblas.dll
       - name: Build
         run: |
           cmake -S . -B build -G "Ninja Multi-Config" -DCMAKE_TOOLCHAIN_FILE=cmake/x64-windows-llvm.cmake -DGGML_NATIVE=OFF -DLLAMA_BUILD_SERVER=ON -DLLAMA_BUILD_BORINGSSL=ON -DGGML_OPENMP=OFF -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DBLAS_INCLUDE_DIRS="$env:RUNNER_TEMP/openblas/include" -DBLAS_LIBRARIES="$env:RUNNER_TEMP/openblas/lib/openblas.lib"
